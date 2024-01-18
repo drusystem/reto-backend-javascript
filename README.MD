@@ -40,6 +40,11 @@ Inicializar servicio local
   npm run start
 ```
 
+OPCIONAL: Generar el build de la aplicación ( dist / .serverless)
+```bash
+  npm run build
+```
+
 
 ## Despliegue
 
@@ -52,5 +57,18 @@ Configurar host y puerto de REDIS en el archivo "serverless.yml"
 Inicializar despliegue
 ```bash
   npm run deploy
+```
+
+
+## Notas
+
+El primer despliegue en producción puede tardar minutos debido a todas las configuraciones iniciales y servicios en AWS que debe levantar el proyecto.
+
+
+## FAQ
+
+#### ¿Cómo desinstalar los servicios aws levantados por el deploy?
+```bash
+  npm run remove
 ```
 
