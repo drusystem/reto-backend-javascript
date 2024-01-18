@@ -1,0 +1,99 @@
+service: reto-backend-csti
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: sa-east-1
+  iam:
+    role:
+      managedPolicies:
+        - "arn:aws:iam::aws:policy/AmazonElastiCacheFullAccess"
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  environment:
+    ##### PRODUCCION ####
+    # REDIS_PORT: !GetAtt MyElasticacheCluster.RedisEndpoint.Port
+    # REDIS_HOST: !GetAtt MyElasticacheCluster.RedisEndpoint.Address
+    #####################
+    ##### LOCAL #########
+    REDIS_PORT: 6379
+    REDIS_HOST: localhost
+    #####################
+    REDIS_TTL: 900
+
+functions:
+  generateToken:
+    handler: src/presentation/generateTokenHandler.generateTokenHandler
+    events:
+      - httpApi: POST /generateToken
+    vpc:
+      securityGroupIds:
+        - !GetAtt MyLambdaSecurityGroup.GroupId
+      subnetIds:
+        - !Ref MySubnet
+
+  retrieveCardData:
+    handler: src/presentation/retrieveCardDataHandler.retrieveCardDataHandler
+    events:
+      - httpApi: POST /retrieveCardData
+    vpc:
+      securityGroupIds:
+        - !GetAtt MyLambdaSecurityGroup.GroupId
+      subnetIds:
+        - !Ref MySubnet
+
+resources:
+  Resources:
+    MyVPC:
+      Type: "AWS::EC2::VPC"
+      Properties:
+        CidrBlock: "10.0.0.0/16"
+
+    MySubnet:
+      Type: "AWS::EC2::Subnet"
+      Properties:
+        VpcId: !Ref MyVPC
+        CidrBlock: "10.0.1.0/24"
+
+    MyLambdaSecurityGroup:
+      Type: "AWS::EC2::SecurityGroup"
+      Properties:
+        GroupDescription: "CSTI - Lambda function security group"
+        VpcId: !Ref MyVPC
+
+    MyElasticacheSecurityGroup:
+      Type: "AWS::EC2::SecurityGroup"
+      Properties:
+        GroupDescription: "CSTI - ElastiCache security group"
+        VpcId: !Ref MyVPC
+        SecurityGroupIngress:
+          - IpProtocol: "tcp" # Specify TCP protocol
+            FromPort: "6379" # Port 6379
+            ToPort: "6379" # Port 6379
+            CidrIp: "10.0.1.0/24"
+
+    MyElasticacheSubnetGroup:
+      Type: "AWS::ElastiCache::SubnetGroup"
+      Properties:
+        Description: "CSTI - Subnet Group for ElastiCache"
+        SubnetIds:
+          - !Ref MySubnet
+        CacheSubnetGroupName: "MyElasticacheSubnetGroupNew"
+
+    MyElasticacheCluster:
+      Type: "AWS::ElastiCache::CacheCluster"
+      Properties:
+        CacheNodeType: "cache.t2.micro"
+        Engine: "redis"
+        NumCacheNodes: "1"
+        CacheSubnetGroupName: !Ref MyElasticacheSubnetGroup
+        VpcSecurityGroupIds:
+          - !GetAtt MyElasticacheSecurityGroup.GroupId
+
+custom:
+  esbuild:
+    bundle: true
+    minify: true
+
+plugins:
+  - serverless-esbuild
+  - serverless-offline
