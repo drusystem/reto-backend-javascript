@@ -1,5 +1,5 @@
 
-# Reto backend javascript - CSTI
+# TOKENIZACION TARJETAS SERVERLESS
 
 Solución serverless para la tokenización de tarjetas en la nube de AWS por medio de servicio LAMBDA.
 
